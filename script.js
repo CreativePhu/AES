@@ -1,4 +1,5 @@
 "use strict"
+  
 
 const SBox = [
     [0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76],
@@ -430,15 +431,179 @@ function convertByteToString(arrayByte){
     return string;
 }  
 
+// lấy rcon tương ứng với khóa số mấy
+function Rcon(i) {
+    let result = 0x01;
+    if (i === 0) {
+        return 0;
+    }
+    for (let j = 1; j < i; j++) {
+        let b = result & 0x80;
+        result <<= 1;
+        if (b === 0x80) {
+            result ^= 0x1b;
+        }
+    }
+    return result;
+}
+  
+// trả về ma trận tương ứng với Rcon
+function createMaxTrixRcon(values){
+    let matrix = []
+    let a = 0
+    for(let i = 0; i < 4; i++){
+        if(i === 0){
+            a = values
+        }else{
+            a = 0
+        }
+        let convertHex = (('00' + a.toString(16)).slice(-2))
+        matrix.push([convertHex])
+    }
+    return matrix
+}
+
+// lấy cột tương ứng với số cột của ma trận nào chuyển về hex luôn
+function getColumn(matrix, col) {
+    var column = [];
+    for (var i = 0; i < matrix.length; i++) {
+        column.push([matrix[i][col]]);
+    }
+    return column;
+}
+
+// đổi chỗ phần tử đầu tiên và phần tử cuối cùng của mảng 2 chiều
+function moveFirstToLast(arr) {
+  let first = arr.slice(0,1); // lấy giá trị của phần tử đầu tiên
+  let second = arr.slice(1);
+  let newArray = second.concat(first)
+  return newArray
+}
+
+// chuyển tất cả các phần tử thập phân ma trận 2 chiều qua SBox
+function convertSboxMatrix2(maTrix){
+    let newArray = []
+    
+    for(let i = 0; i < maTrix.length; i++){
+        for(let y = 0; y < maTrix[0].length; y++){
+            let arrayElement = maTrix[i][y].split('')
+            let indexFirst;
+            let indexLast;
+    
+            switch (arrayElement[0]) {
+                case 'a':
+                    indexFirst = 10
+                    break;
+                case 'b':
+                    indexFirst = 11
+                    break;
+                case 'c':
+                    indexFirst = 12
+                    break;
+                case 'd':
+                    indexFirst = 13
+                    break;
+                case 'e':
+                    indexFirst = 14
+                    break;
+                case 'f':
+                    indexFirst = 15
+                    break;
+                default:
+                    indexFirst = arrayElement[0]
+                    break;
+            }
+    
+            switch (arrayElement[1]) {
+                case 'a':
+                    indexLast = 10
+                    break;
+                case 'b':
+                    indexLast = 11
+                    break;
+                case 'c':
+                    indexLast = 12
+                    break;
+                case 'd':
+                    indexLast = 13
+                    break;
+                case 'e':
+                    indexLast = 14
+                    break;
+                case 'f':
+                    indexLast = 15
+                    break;
+                default:
+                    indexLast = arrayElement[1]
+                    break;
+            }
+    
+            newArray.push([('00' + SBox[indexFirst][indexLast].toString(16)).slice(-2)])
+        }
+    }
+    return newArray
+}
+
+// xor hai mảng hai chiều thập lục phân
+function xorMatrix(a, b) {
+    let result = [];
+    for (let i = 0; i < a.length; i++) {
+        let row = [];
+        for (let j = 0; j < a[i].length; j++) {
+            let xored = parseInt(a[i][j], 16) ^ parseInt(b[i][j], 16);
+            row.push((('00' + xored.toString(16)).slice(-2)));
+        }
+        result.push(row);
+    }
+    return result;
+}
+
+// chuyển ma trận 4x4 về chuỗi liền hoàn chỉnh
+function flattenMatrix(matrix) {
+    return matrix.reduce((acc, row) => acc.concat(row), []).join('');
+}
+
+function createKey10(key){
+    let converKeyByte = decimalToHex(convertMaTrix44(convertKeyHexToByte(key)))
+    let listTenPassWord = []
+    // console.log(converKeyByte)
+    for(let i=1;i<11; i++){
+        
+        let newKey;
+        let rcon = createMaxTrixRcon(Rcon(i))
+        let columnFirst = getColumn(converKeyByte,0)
+        let columnEnd = getColumn(converKeyByte,3)
+        let swapColumnEnd = moveFirstToLast(columnEnd)
+        let sboxColumnEnd = convertSboxMatrix2(swapColumnEnd)
+        let startXor = (xorMatrix(columnFirst,xorMatrix(sboxColumnEnd,rcon)))
+        
+        for (let i = 0; i<4; i++){
+            let ketQua = xorMatrix(startXor,getColumn(converKeyByte,i+1))
+            if(Array.isArray(newKey)){
+                for(let  ii=0; ii<4; ii++){
+                    newKey[i].push(ketQua[ii][0])
+                }
+            }else{
+                newKey = [].concat(startXor)
+                for(let  ii=0; ii<4; ii++){
+                    newKey[i].push(ketQua[ii][0])
+                }
+            }
+        }
+        listTenPassWord.push(flattenMatrix(newKey))
+    }
+    return listTenPassWord
+}
   
 function encode(text){
 
-    const listKey = []
+    const keyDefault = [createKeyRandom16()]
+    let listKey = []
 
-    // tạo 11 khóa lưu vào mảng
-    for(let i = 0; i < 11; i++){
-        listKey.push(createKeyRandom16())
-    }
+    // tạo 10 khóa lưu vào mảng
+    let createTenKey = createKey10(keyDefault[0])
+
+    listKey = keyDefault.concat(createTenKey)
     
     // chia text thành các khối dữ liệu
     let step1 = blockData(text)
@@ -583,3 +748,4 @@ function encode(text){
 }
 
 encode('Lorem ipsum dolor sit amet, consectetur adipiscing elit.')
+
