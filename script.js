@@ -1,5 +1,4 @@
-"use strict"
-  
+"use strict" 
 
 const SBox = [
     [0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76],
@@ -20,12 +19,39 @@ const SBox = [
     [0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16]
 ]
 
+const invSbox = [
+    [0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb],
+    [0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb],
+    [0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e],
+    [0x08, 0x2e, 0xa1, 0x66, 0x28, 0xd9, 0x24, 0xb2, 0x76, 0x5b, 0xa2, 0x49, 0x6d, 0x8b, 0xd1, 0x25],
+    [0x72, 0xf8, 0xf6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xd4, 0xa4, 0x5c, 0xcc, 0x5d, 0x65, 0xb6, 0x92],
+    [0x6c, 0x70, 0x48, 0x50, 0xfd, 0xed, 0xb9, 0xda, 0x5e, 0x15, 0x46, 0x57, 0xa7, 0x8d, 0x9d, 0x84],
+    [0x90, 0xd8, 0xab, 0x00, 0x8c, 0xbc, 0xd3, 0x0a, 0xf7, 0xe4, 0x58, 0x05, 0xb8, 0xb3, 0x45, 0x06],
+    [0xd0, 0x2c, 0x1e, 0x8f, 0xca, 0x3f, 0x0f, 0x02, 0xc1, 0xaf, 0xbd, 0x03, 0x01, 0x13, 0x8a, 0x6b],
+    [0x3a, 0x91, 0x11, 0x41, 0x4f, 0x67, 0xdc, 0xea, 0x97, 0xf2, 0xcf, 0xce, 0xf0, 0xb4, 0xe6, 0x73],
+    [0x96, 0xac, 0x74, 0x22, 0xe7, 0xad, 0x35, 0x85, 0xe2, 0xf9, 0x37, 0xe8, 0x1c, 0x75, 0xdf, 0x6e],
+    [0x47, 0xf1, 0x1a, 0x71, 0x1d, 0x29, 0xc5, 0x89, 0x6f, 0xb7, 0x62, 0x0e, 0xaa, 0x18, 0xbe, 0x1b],
+    [0xfc, 0x56, 0x3e, 0x4b, 0xc6, 0xd2, 0x79, 0x20, 0x9a, 0xdb, 0xc0, 0xfe, 0x78, 0xcd, 0x5a, 0xf4],
+    [0x1f, 0xdd, 0xa8, 0x33, 0x88, 0x07, 0xc7, 0x31, 0xb1, 0x12, 0x10, 0x59, 0x27, 0x80, 0xec, 0x5f],
+    [0x60, 0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f, 0x93, 0xc9, 0x9c, 0xef],
+    [0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61],
+    [0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d]
+]
+
 const fixedMatrix = [
     [0x02, 0x03, 0x01, 0x01],
     [0x01, 0x02, 0x03, 0x01],
     [0x01, 0x01, 0x02, 0x03],
     [0x03, 0x01, 0x01, 0x02]
 ];
+
+const InvMixColumns = [
+    [ 0x0e, 0x0b, 0x0d, 0x09 ],
+    [ 0x09, 0x0e, 0x0b, 0x0d ],
+    [ 0x0d, 0x09, 0x0e, 0x0b ],
+    [ 0x0b, 0x0d, 0x09, 0x0e ]
+
+]
 
 // tạo khóa ngẫu nhiên
 function createKeyRandom16(){
@@ -49,8 +75,8 @@ function createKeyRandom16(){
 
 
 // chia đa data thành nhiều khối dữ liệu
-function blockData(data){
-    let blockSize=16
+function blockData(data,size){
+    let blockSize=size
     // có thể chia thành mấy khối
     let blockCount = Math.ceil(data.length / blockSize)
     // tạo mảng có độ dài tương đương với số khối
@@ -87,10 +113,10 @@ function convertStringToByte(arrayString){
     return byte
 }
 
-// console.log(convertStringToByte(blockData('Lorem ipsum dolor sit amet, consectetur adipiscing elit.')))
+// console.log(convertStringToByte(blockData('Lorem ipsum dolor sit amet, consectetur adipiscing elit.',16)))
 
 
-function convertKeyHexToByte(hexKey){
+function convertHexToByte(hexKey){
     let key = []
 
     for(let i=0; i<hexKey.length; i+=2){
@@ -105,7 +131,7 @@ function convertKeyHexToByte(hexKey){
 }
 
 
-// console.log(convertKeyHexToByte(createKeyRandom16()))
+// console.log(convertHexToByte(createKeyRandom16()))
 
 
 // xor hai mảng byte mot chieu
@@ -129,11 +155,11 @@ function xorData(arrayDataByte, keyByte){
 }
 
 
-// console.log(xorData(convertStringToByte(blockData('Lorem ipsum dolor sit amet, consectetur adipiscing elit.')),convertKeyHexToByte(createKeyRandom16())))
+// console.log(xorData(convertStringToByte(blockData('Lorem ipsum dolor sit amet, consectetur adipiscing elit.',16)),convertKeyHexToByte(createKeyRandom16())))
 
 
 
-// chuyển thành mã hex
+// chuyển thành mã hex từ số thập phân
 function byteConvertHex(arrayData){
     let newArrayData = []
     arrayData.forEach(element => {
@@ -252,103 +278,53 @@ function shiftRows(arrayData){
 // console.log(shiftRows(convertMaTrix44(subBytes(['19','a0','9a','e9','3d','f4','c6','f8','e3','e2','8d','48','be','2b','2a','08']))))
 
 
-// nhân 2 ma trận
-function multiplyHexMatrix(mat1, mat2) {
-    // Khởi tạo ma trận kết quả
-    var result = new Array(mat1.length);
-    for (var i = 0; i < mat1.length; i++) {
-      result[i] = new Array(mat2[0].length);
+// nhân 2 số thập lục phân
+function gfMul(a, b) {
+    let p = 0;
+    for (let i = 0; i < 8; i++) {
+        if (b & 1) {
+            p ^= a;
+        }
+        const hiBitSet = (a & 0x80) !== 0;
+        a <<= 1;
+        if (hiBitSet) {
+            a ^= 0x1B; /* x^8 + x^4 + x^3 + x + 1 */
+        }
+        b >>= 1;
     }
+    return '0x'+('00'+(p & 0xFF).toString(16)).slice(-2);
+}
   
-    // Thực hiện phép nhân ma trận
-    for (var i = 0; i < mat1.length; i++) {
-        for (var j = 0; j < mat2[0].length; j++) {
-            result[i][j] = "00"; // Khởi tạo giá trị ban đầu của phần tử
-            for (var k = 0; k < mat1[0].length; k++) {
-                var product = multiplyHexNumbers(mat1[i][k], mat2[k][j]); // Tính tích của hai số thập lục phân
-                result[i][j] = xorHexNumbers(result[i][j], product); // Thực hiện phép XOR giữa các tích để tính tổng cuối cùng
+// cộng hai số thập lục phân
+function gf28_add(a, b) {
+    return '0x'+('00'+(a ^ b).toString(16)).slice(-2);
+}
+  
+// nhân 2 ma trận thập lục phân
+function matrixMultiply(mat1, mat2) {
+    const m = mat1.length; // số hàng của ma trận thứ nhất
+    const n = mat2.length; // số cột của ma trận thứ nhất, số hàng của ma trận thứ hai
+    const p = mat2[0].length; // số cột của ma trận thứ hai
+    
+    // Khởi tạo ma trận kết quả với tất cả các phần tử bằng 0
+    const result = new Array(m).fill(0).map(() => new Array(p).fill(0));
+    
+    // Lặp qua từng hàng của ma trận thứ nhất
+    for (let i = 0; i < m; i++) {
+      // Lặp qua từng cột của ma trận thứ hai
+        for (let j = 0; j < p; j++) {
+            // Tính giá trị của phần tử (i, j) trong ma trận kết quả
+            for (let k = 0; k < n; k++) {
+                result[i][j] = gf28_add(result[i][j],gfMul(mat1[i][k],mat2[k][j]));
             }
         }
     }
-  
+
     return result;
 }
 
 
-// nhân các số hex
-function multiplyHexNumbers(a, b) {
-    // Chuyển đổi các số thập lục phân sang nhị phân
-    a = (('00' + a.toString(16)).slice(-2))
-    b = (('00' + b.toString(16)).slice(-2))
-  
-    var binaryA = hexToBinary(a);
-    var binaryB = hexToBinary(b);
-    
-      
-    // Khởi tạo giá trị ban đầu của tích
-    // Thực hiện phép nhân trong trường nhị phân GF(2^8)
-    var product = "00000000";
-    for (var i = 0; i < 8; i++) {
-        if (binaryB.charAt(7 - i) == "1") {
-            if(product.length === 2){
-                product = hexToBinary(product)
-                product = xorHexNumbers(product, binaryA.substr(i) + "0000000".substr(0, i));
-            }else{
-                product = xorHexNumbers(product, binaryA.substr(i) + "0000000".substr(0, i));
-            }
-        }
-    }
-  
-    // Chuyển đổi kết quả từ nhị phân sang thập lục phân và trả về giá trị
-    let abc = hexToBinary(product)
-    return binaryToHex(abc);
-}
-
-
-// xor các số hex
-function xorHexNumbers(a, b) {
-    if(!(a.length == 2 && b.length == 2)){
-        a = (('00' + parseInt(a,2).toString(16)).slice(-2))
-        b = (('00' + parseInt(b,2).toString(16)).slice(-2))
-    }
-  
-    //Chuyển đổi các số thập lục phân sang nhị phân
-    var binaryA = hexToBinary(a);
-    var binaryB = hexToBinary(b);
-    
-  
-    // Thực hiện phép XOR giữa hai số nhị phân
-    var result = "";
-    for (var i = 0; i < 8; i++) {
-        result += (binaryA.charAt(i) == binaryB.charAt(i)) ? "0" : "1";
-    }
-  
-    // Chuyển đổi kết quả từ nhị phân sang thập lục phân và trả về giá trị
-    return binaryToHex(result);
-}
-
-
-// chuyển từ hex ra nhị phân
-function hexToBinary(hex) {
-    var binary = "";
-    for (var i = 0; i < hex.length; i++) {
-        binary += ("0000" + parseInt(hex.charAt(i), 16).toString(2)).substr(-4);
-    }
-    return binary;
-}
-
-
-// chuyển từ nhị phân ra hex
-function binaryToHex(binary) {
-    var hex = "";
-    for (var i = 0; i < 2; i++) {
-        var slice = binary.substr(i * 4, 4);
-        hex += parseInt(slice, 2).toString(16);
-    }
-    return hex;
-}
-
-// chuyển các phần từ trong ma trận từ thập lục phân về thập phân
+// chuyển các phần từ trong ma trận 4x4 từ thập lục phân về thập phân
 function convertHexToDecimal(matrix) {
     const decimalMatrix = [];
     for (let i = 0; i < matrix.length; i++) {
@@ -546,16 +522,37 @@ function convertSboxMatrix2(maTrix){
 
 // xor hai mảng hai chiều thập lục phân
 function xorMatrix(a, b) {
-    let result = [];
-    for (let i = 0; i < a.length; i++) {
-        let row = [];
-        for (let j = 0; j < a[i].length; j++) {
-            let xored = parseInt(a[i][j], 16) ^ parseInt(b[i][j], 16);
-            row.push((('00' + xored.toString(16)).slice(-2)));
+    const numRows = Math.max(a.length, b.length);
+    const numCols = Math.max(a[0].length, b[0].length);
+
+// Thêm các phần tử '0' vào các hàng hoặc cột thiếu của ma trận
+    const paddedA = padMatrix(a, numRows, numCols);
+    const paddedB = padMatrix(b, numRows, numCols);
+
+// Tính toán XOR của hai ma trận
+    const result = [];
+    for (let i = 0; i < numRows; i++) {
+        result[i] = [];
+        for (let j = 0; j < numCols; j++) {
+            const valueA = parseInt(paddedA[i][j], 16);
+            const valueB = parseInt(paddedB[i][j], 16);
+            const xorValue = valueA ^ valueB;
+            result[i][j] = xorValue.toString(16);
         }
-        result.push(row);
     }
     return result;
+}
+  
+function padMatrix(matrix, numRows, numCols) {
+    const paddedMatrix = [];
+    for (let i = 0; i < numRows; i++) {
+        paddedMatrix[i] = [];
+        for (let j = 0; j < numCols; j++) {
+            const value = matrix[i] && matrix[i][j] ? matrix[i][j] : '0';
+            paddedMatrix[i][j] = value;
+        }
+    }
+    return paddedMatrix;
 }
 
 // chuyển ma trận 4x4 về chuỗi liền hoàn chỉnh
@@ -563,50 +560,66 @@ function flattenMatrix(matrix) {
     return matrix.reduce((acc, row) => acc.concat(row), []).join('');
 }
 
+// tạo 10 khóa con
 function createKey10(key){
-    let converKeyByte = decimalToHex(convertMaTrix44(convertKeyHexToByte(key)))
+    let converKeyByte = decimalToHex(convertMaTrix44(convertHexToByte(key)))
     let listTenPassWord = []
     // console.log(converKeyByte)
     for(let i=1;i<11; i++){
         
         let newKey;
         let rcon = createMaxTrixRcon(Rcon(i))
+        // console.log(rcon)
         let columnFirst = getColumn(converKeyByte,0)
+        // console.log(columnFirst)
         let columnEnd = getColumn(converKeyByte,3)
+        // console.log(columnEnd)
         let swapColumnEnd = moveFirstToLast(columnEnd)
+        // console.log(swapColumnEnd)
         let sboxColumnEnd = convertSboxMatrix2(swapColumnEnd)
-        let startXor = (xorMatrix(columnFirst,xorMatrix(sboxColumnEnd,rcon)))
-        
-        for (let i = 0; i<4; i++){
-            let ketQua = xorMatrix(startXor,getColumn(converKeyByte,i+1))
-            if(Array.isArray(newKey)){
-                for(let  ii=0; ii<4; ii++){
-                    newKey[i].push(ketQua[ii][0])
+        // console.log(sboxColumnEnd)
+        let columnKey = xorMatrix(xorMatrix(columnFirst,sboxColumnEnd),rcon)
+
+        let ketQua;
+
+        for(let i=1; i<4; i++){
+            if(Array.isArray(ketQua)){
+                let xorAgain = xorMatrix(getColumn(converKeyByte,i),getColumn(ketQua,i-1))
+                // console.log(xorAgain)
+                for(let j=0; j<4; j++){
+                    ketQua[j].push(('00'+xorAgain[j][0]).slice(-2))
                 }
             }else{
-                newKey = [].concat(startXor)
-                for(let  ii=0; ii<4; ii++){
-                    newKey[i].push(ketQua[ii][0])
+                ketQua = [...columnKey]
+                let xorSecond = xorMatrix(getColumn(converKeyByte,i),getColumn(ketQua,i-1))
+                // console.log(xorSecond)
+                for(let ii=0; ii<4; ii++){
+                    ketQua[ii].push(('00'+xorSecond[ii][0]).slice(-2))
                 }
             }
         }
-        listTenPassWord.push(flattenMatrix(newKey))
+        converKeyByte = ketQua
+        let ArrayKey = ketQua.map(function(element){
+            return element.join('')
+        })
+        listTenPassWord.push(ArrayKey.join(''))
     }
     return listTenPassWord
 }
   
 function encode(text){
 
-    const keyDefault = [createKeyRandom16()]
+    const keyDefault = ['2b28ab097eaef7cf15d2154f16a6883c']
     let listKey = []
 
     // tạo 10 khóa lưu vào mảng
     let createTenKey = createKey10(keyDefault[0])
 
     listKey = keyDefault.concat(createTenKey)
+    console.log(listKey)
     
     // chia text thành các khối dữ liệu
-    let step1 = blockData(text)
+    let step1 = blockData(text,16)
     // console.log(step1)
 
     // chuyển các phần tử trong step 1 thành byte
@@ -614,7 +627,7 @@ function encode(text){
     // console.log(step2)
 
     //chuyển key gốc thành mảng chứa các giá trị byte
-    let step3 = convertKeyHexToByte(listKey[0])
+    let step3 = convertHexToByte(listKey[0])
     // console.log(step3)
 
 
@@ -663,13 +676,11 @@ function encode(text){
             // multiply Matrix GF28
             let multiplyGF28 = []
             for (let d=0; d<listArrayShiftRows.length; d++){
-                multiplyGF28.push(multiplyHexMatrix(fixedMatrix,listArrayShiftRows[d]))
+                multiplyGF28.push(matrixMultiply(fixedMatrix,listArrayShiftRows[d]))
             }
-            // console.log(multiplyGF28)
-
-
+            
             // chuyển key và data về thập phân và đưa về ma trận 4x4
-            let key = convertMaTrix44(convertKeyHexToByte(listKey[i]))
+            let key = convertMaTrix44(convertHexToByte(listKey[i]))
             // console.log(key)
             let data = []
             for (let e=0; e<multiplyGF28.length; e++){
@@ -691,6 +702,7 @@ function encode(text){
             listConvertToHexArrayData = newArrayData
 
             // console.log(listConvertToHexArrayData)
+            break;
 
         }
 
@@ -722,7 +734,7 @@ function encode(text){
     // console.log(listArrayShiftRows)
 
     // chuyển key và data về thập phân và đưa về ma trận 4x4
-    let key = convertMaTrix44(convertKeyHexToByte(listKey[10]))
+    let key = convertMaTrix44(convertHexToByte(listKey[10]))
     // console.log(key)
     let data = []
     for (let e=0; e<listArrayShiftRows.length; e++){
@@ -736,16 +748,60 @@ function encode(text){
     }
     // console.log(listMaxTrixXorKey)
 
+
+    // chuyển các phần tử thập phân trong ma trận 4x4 về mã hex và chuyển về mảng 1 chiều
     let newArrayData = []
     for (let g=0; g<listMaxTrixXorKey.length; g++){
-        newArrayData.push(matrixToArray(listMaxTrixXorKey[g]))
+        newArrayData.push(matrixToArray(decimalToHex(listMaxTrixXorKey[g])))
     }
+    // console.log(newArrayData)
 
-    let textEnCode = convertByteToString(convertArrayToUint8Array(newArrayData)).join('')
+    // đưa các mảng con trong ma trận bậc 2 về chuỗi
+    let arrayTextHex = []
+    arrayTextHex = newArrayData.map(function(element){
+        return element.join('')
+    })
 
-    console.log(textEnCode)
+    let textHex = arrayTextHex.join('')
+
+    return {
+        text: textHex,
+        key: keyDefault[0]
+    }
 
 }
 
-encode('Lorem ipsum dolor sit amet, consectetur adipiscing elit.')
+function decryption(textAndKye){
 
+    // khởi tạo roundKey danh sách các khóa giải mã
+    const keyDefault = [textAndKye.key]
+    let listKey = []
+
+    // tạo 10 khóa lưu vào mảng
+    let createTenKey = createKey10(keyDefault[0])
+
+    listKey = keyDefault.concat(createTenKey)
+
+    // chia textHex thành các khối dữ liệu
+    let step1 = blockData(textAndKye.text,32)
+    // console.log(step1)
+
+    // chuyển các phần tử hex trong step 1 thành byte
+    let step2 = []
+    step2 = step1.map(element => {
+        return convertHexToByte(element)
+    });
+    // console.log(step2)
+
+    //chuyển key gốc thành mảng chứa các giá trị byte
+    let step3 = convertHexToByte(listKey[0])
+    // console.log(step3)
+
+    // thực hiện phép trộn đảo state gồm các  bước (SubBytes, ShiftRows, MixColumns)
+
+}
+
+
+console.log(encode('Lorem ipsum dolor sit amet, consectetur adipiscing elit.'))
+
+// decryption(encode('Lorem ipsum dolor sit amet, consectetur adipiscing elit.'))
