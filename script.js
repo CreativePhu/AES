@@ -39,17 +39,17 @@ const invSbox = [
 ]
 
 const fixedMatrix = [
-    [0x02, 0x03, 0x01, 0x01],
-    [0x01, 0x02, 0x03, 0x01],
-    [0x01, 0x01, 0x02, 0x03],
-    [0x03, 0x01, 0x01, 0x02]
+    ['0x02', '0x03', '0x01', '0x01'],
+    ['0x01', '0x02', '0x03', '0x01'],
+    ['0x01', '0x01', '0x02', '0x03'],
+    ['0x03', '0x01', '0x01', '0x02']
 ];
 
 const InvMixColumns = [
-    [ 0x0e, 0x0b, 0x0d, 0x09 ],
-    [ 0x09, 0x0e, 0x0b, 0x0d ],
-    [ 0x0d, 0x09, 0x0e, 0x0b ],
-    [ 0x0b, 0x0d, 0x09, 0x0e ]
+    ['0x0e', '0x0b', '0x0d', '0x09'],
+    ['0x09', '0x0e', '0x0b', '0x0d'],
+    ['0x0d', '0x09', '0x0e', '0x0b'],
+    ['0x0b', '0x0d', '0x09', '0x0e']
 
 ]
 
@@ -115,7 +115,7 @@ function convertStringToByte(arrayString){
 
 // console.log(convertStringToByte(blockData('Lorem ipsum dolor sit amet, consectetur adipiscing elit.',16)))
 
-
+// chuyển mã hex về thập phân nhưng dùng cho khóa
 function convertHexToByte(hexKey){
     let key = []
 
@@ -174,7 +174,7 @@ function byteConvertHex(arrayData){
 
 
 // lọc qua sbox
-function subBytes(arrayData){
+function subBytes(arrayData, SBox){
     // chuyển thành dữ liệu hex
     let arrayDataHex = byteConvertHex(arrayData)
     // mảng chứa mã đã được lọc qua sbox
@@ -240,7 +240,7 @@ function subBytes(arrayData){
 }
 
 
-// console.log(subBytes(['19','a0','9a','e9','3d','f4','c6','f8','e3','e2','8d','48','be','2b','2a','08']))
+// console.log(subBytes(['19','a0','9a','e9','3d','f4','c6','f8','e3','e2','8d','48','be','2b','2a','08'],SBox))
 
 
 // Chuyển ma trận 4x4
@@ -257,25 +257,45 @@ function convertMaTrix44(arrayData){
     return maxTrix44
 }
 
-// console.log(convertMaTrix44(subBytes(['19','a0','9a','e9','3d','f4','c6','f8','e3','e2','8d','48','be','2b','2a','08'])))
+// console.log(convertMaTrix44(subBytes(['19','a0','9a','e9','3d','f4','c6','f8','e3','e2','8d','48','be','2b','2a','08'],SBox)))
 
 
 
 // bắt đầu thực hiện đổi chỗ các byte
-function shiftRows(arrayData){
+function shiftRows(arrayData, index){
     let newArrayData = []
     newArrayData.push(arrayData[0])
-    for(let i=1; i<arrayData.length; i++){
-        let array1 = []
-        let array2 = []
-        array1 = arrayData[i].slice(0,i)
-        array2 =arrayData[i].slice(i)
-        newArrayData.push(array2.concat(array1))
+    if(index === 1){
+        for(let i=1; i<arrayData.length; i++){
+            let array1 = []
+            let array2 = []
+            array1 = arrayData[i].slice(0,i)
+            array2 =arrayData[i].slice(i)
+            newArrayData.push(array2.concat(array1))
+        }
+    }else{
+        for(let i=1; i<arrayData.length; i++){
+            let array1 = []
+            let array2 = []
+            if(i === 1){
+                array1 = arrayData[i].slice(0,3)
+                array2 =arrayData[i].slice(3,4)
+                newArrayData.push(array2.concat(array1))
+            }else if(i === 3){
+                array1 = arrayData[i].slice(0,1)
+                array2 =arrayData[i].slice(1,4)
+                newArrayData.push(array2.concat(array1))
+            }else{
+                array1 = arrayData[i].slice(0,i)
+                array2 =arrayData[i].slice(i)
+                newArrayData.push(array2.concat(array1))
+            }
+        }
     }
     return newArrayData
 }
 
-// console.log(shiftRows(convertMaTrix44(subBytes(['19','a0','9a','e9','3d','f4','c6','f8','e3','e2','8d','48','be','2b','2a','08']))))
+// console.log(shiftRows(convertMaTrix44(subBytes(['19','a0','9a','e9','3d','f4','c6','f8','e3','e2','8d','48','be','2b','2a','08'],SBox)),1))
 
 
 // nhân 2 số thập lục phân
@@ -377,35 +397,6 @@ function matrixToArray(matrix) {
     }
     return array;
 }
-
-
-// chuyển mảng thường về mảng Uint8Array()
-function convertArrayToUint8Array(array) {
-    let uint8Array = [];
-  
-    for (let i = 0; i < array.length; i++) {
-        let row = new Uint8Array(array[i].length);
-        for (let j = 0; j < array[i].length; j++) {
-            row.set([array[i][j]], j);
-        }
-        uint8Array.push(row);
-    }
-  
-    return uint8Array;
-}
-  
-
-// chuyển đổi byte về chuỗi text đọc
-function convertByteToString(arrayByte){
-    // khởi tạo hàm chuyển đổi byte thành string
-    let decoder = new TextDecoder();
-    // lặp qua mảng và chuyển đổi từng byte trong mảng thành string
-    let string = arrayByte.map(function(element){
-        return decoder.decode(element);
-    })
-    // trả về mảng đã chuyển đổi
-    return string;
-}  
 
 // lấy rcon tương ứng với khóa số mấy
 function Rcon(i) {
@@ -606,7 +597,21 @@ function createKey10(key){
     }
     return listTenPassWord
 }
-  
+
+// chuyển từ thập lục phân về thập phân theo fnc hexArrayToDecArray
+function hexToDec(hexString) {
+    return parseInt(hexString, 16);
+}
+
+// chuyển chuỗi 1 chiều thập lục phân về thập phân
+function hexArrayToDecArray(hexArray) {
+    const decArray = [];
+    for (let i = 0; i < hexArray.length; i++) {
+        decArray.push(hexToDec(hexArray[i]));
+    }
+    return decArray;
+}
+// hàm mã hóa
 function encode(text){
 
     const keyDefault = ['2b28ab097eaef7cf15d2154f16a6883c']
@@ -616,7 +621,6 @@ function encode(text){
     let createTenKey = createKey10(keyDefault[0])
 
     listKey = keyDefault.concat(createTenKey)
-    console.log(listKey)
     
     // chia text thành các khối dữ liệu
     let step1 = blockData(text,16)
@@ -654,7 +658,7 @@ function encode(text){
             // xor từng khối dữ liệu lọc qua sbox
             let listXorSbox = []
             for (let a=0; a<listConvertToHexArrayData.length; a++){
-                listXorSbox.push(subBytes(listConvertToHexArrayData[a]))
+                listXorSbox.push(subBytes(listConvertToHexArrayData[a],SBox))
             }
             // console.log(listXorSbox)
 
@@ -669,15 +673,24 @@ function encode(text){
             // đổi chỗ các byte trong khối dữ liệu
             let listArrayShiftRows = []
             for (let c=0; c<listConvertMaxTrix44.length; c++){
-                listArrayShiftRows.push(shiftRows(listConvertMaxTrix44[c]))
+                listArrayShiftRows.push(shiftRows(listConvertMaxTrix44[c],1))
             }
             // console.log(listArrayShiftRows)
 
-            // multiply Matrix GF28
+            // này là bước mixcolumn
             let multiplyGF28 = []
-            for (let d=0; d<listArrayShiftRows.length; d++){
-                multiplyGF28.push(matrixMultiply(fixedMatrix,listArrayShiftRows[d]))
-            }
+            listArrayShiftRows.forEach(function(element){
+                for(let i=0; i<4; i++){
+                    for(let j=0; j<4; j++){
+                        element[i][j] = '0x'+element[i][j]
+                    }
+                }
+            })
+            listArrayShiftRows.forEach(function(element){
+                multiplyGF28.push(matrixMultiply(fixedMatrix,element))
+            })
+            
+            // console.log(multiplyGF28)
             
             // chuyển key và data về thập phân và đưa về ma trận 4x4
             let key = convertMaTrix44(convertHexToByte(listKey[i]))
@@ -686,6 +699,8 @@ function encode(text){
             for (let e=0; e<multiplyGF28.length; e++){
                 data.push(convertHexToDecimal(multiplyGF28[e]))
             }
+
+            // console.log(data)
 
             // xor key with data
             let listMaxTrixXorKey = []
@@ -702,7 +717,6 @@ function encode(text){
             listConvertToHexArrayData = newArrayData
 
             // console.log(listConvertToHexArrayData)
-            break;
 
         }
 
@@ -710,11 +724,12 @@ function encode(text){
     }
 
     let finishRepeat = setUp9(listConvertToHexArrayData)
+    // console.log(finishRepeat)
 
     // xor từng khối dữ liệu lọc qua sbox
     let listXorSbox = []
     for (let a=0; a<finishRepeat.length; a++){
-        listXorSbox.push(subBytes(finishRepeat[a]))
+        listXorSbox.push(subBytes(finishRepeat[a],SBox))
     }
     // console.log(listXorSbox)
 
@@ -729,7 +744,7 @@ function encode(text){
     // đổi chỗ các byte trong khối dữ liệu
     let listArrayShiftRows = []
     for (let c=0; c<listConvertMaxTrix44.length; c++){
-        listArrayShiftRows.push(shiftRows(listConvertMaxTrix44[c]))
+        listArrayShiftRows.push(shiftRows(listConvertMaxTrix44[c],1))
     }
     // console.log(listArrayShiftRows)
 
@@ -740,6 +755,7 @@ function encode(text){
     for (let e=0; e<listArrayShiftRows.length; e++){
         data.push(convertHexToDecimal(listArrayShiftRows[e]))
     }
+    // console.log(data)
 
     // xor key with data
     let listMaxTrixXorKey = []
@@ -770,7 +786,7 @@ function encode(text){
     }
 
 }
-
+// hàm giải mã
 function decryption(textAndKye){
 
     // khởi tạo roundKey danh sách các khóa giải mã
@@ -781,6 +797,7 @@ function decryption(textAndKye){
     let createTenKey = createKey10(keyDefault[0])
 
     listKey = keyDefault.concat(createTenKey)
+    // console.log(listKey)
 
     // chia textHex thành các khối dữ liệu
     let step1 = blockData(textAndKye.text,32)
@@ -793,15 +810,98 @@ function decryption(textAndKye){
     });
     // console.log(step2)
 
-    //chuyển key gốc thành mảng chứa các giá trị byte
-    let step3 = convertHexToByte(listKey[0])
+    //chuyển key cuối thành mảng chứa các giá trị byte
+    let step3 = convertHexToByte(listKey[listKey.length-1])
     // console.log(step3)
 
-    // thực hiện phép trộn đảo state gồm các  bước (SubBytes, ShiftRows, MixColumns)
+    // Thực hiện phép AddRoundKey với khóa con cuối cùng để tạo ra state ban đầu.
+    let stateFirst = []
+    stateFirst = xorData(step2, step3)
+    // console.log(stateFirst)
 
+    // chuyển các state ban đầu thành matran 4x4
+    let convertStateMatrix4x4 = stateFirst.map(function(element){
+        return convertMaTrix44(element)
+    })
+    // console.log(convertStateMatrix4x4)
+
+    // thực hiện phép trộn đảo state gồm các  bước (SubBytes, ShiftRows, MixColumns)
+    function setUp9_1(a){
+        let convertStateMatrix4x4 = a
+        for(let i=9; i>0; i--){
+            // ShiftRows từng khối dữ liệu 
+            let shiftRowsData = convertStateMatrix4x4.map(function(element){
+                return shiftRows(element,2)
+            })
+            // console.log(shiftRowsData)
+    
+            // chuyển các mảng con trong khối dữ liệu về ma trận 1 chiều , trả về kiểu hex và so sánh với bảng sbox ngược
+            let subBytesData = shiftRowsData.map(function(element){
+                return subBytes(byteConvertHex(matrixToArray(element)),invSbox)
+            })
+            // console.log(subBytesData)
+    
+            // chuyển mảng về ma trận 4x4 và thêm 0x để nhân hai ma trận chính xác
+            let mixColumnData = subBytesData.map(function(element){
+                let newArray = convertMaTrix44(element)
+                for(let i=0; i<4; i++){
+                    for(let j=0; j<4; j++){
+                        newArray[i][j] = '0x'+ newArray[i][j]
+                    }
+                }
+                return matrixMultiply(InvMixColumns,newArray)
+            })
+            // console.log(mixColumnData)   
+            let key = convertHexToByte(listKey[i])
+            // console.log(key)
+    
+            // thực hiện xor data với khóa ở vòng lặp hiện tại và chuyển về matrix 44
+            let addroundkeyData = mixColumnData.map(function(element){
+                // chuyển từng phần tử trong ma trận về thập phân
+                return matrixToArray(convertHexToDecimal(element))
+            })
+            // xor mảng 2 chiều với key
+            addroundkeyData = xorData(addroundkeyData,key)
+            // chuyển lại về matran 4x4
+            addroundkeyData = addroundkeyData.map(element => {
+                return convertMaTrix44(element)
+            });
+            // console.log(addroundkeyData)
+    
+            convertStateMatrix4x4 = addroundkeyData
+        }
+        return convertStateMatrix4x4
+    }
+
+    let finishSetUp = setUp9_1(convertStateMatrix4x4)
+    // console.log(finishSetUp)
+
+    // shiftRowsData vòng lặp cuối
+    let ShiftRowsDataFinish = finishSetUp.map(function(element){
+        return shiftRows(element,2)
+    })
+    // console.log(ShiftRowsDataFinish)
+    // subBytesData vòng lặp cuối
+    let subBytesDataFinish = ShiftRowsDataFinish.map(function(element){
+        return subBytes(byteConvertHex(matrixToArray(element)),invSbox)
+    })
+    // console.log(subBytesDataFinish)
+    // addroundkeyData Vòng lặp cuối
+    let addroundkeyDataFinish = subBytesDataFinish.map(function(element){
+        // chuyển từng phần tử trong ma trận về thập phân
+        return hexArrayToDecArray(element)
+    })
+    // xor mảng 2 chiều với key
+    let key = convertHexToByte(listKey[0])
+    // console.log(key)
+    addroundkeyDataFinish = xorData(addroundkeyDataFinish,key)
+    // console.log(addroundkeyDataFinish)
+    let convertArrayToUnit8Array = addroundkeyDataFinish.map(function(element){
+        console.log(element)
+    })
 }
 
 
 console.log(encode('Lorem ipsum dolor sit amet, consectetur adipiscing elit.'))
 
-// decryption(encode('Lorem ipsum dolor sit amet, consectetur adipiscing elit.'))
+decryption({text: '5ad4148b3d50472bf9da738318e634ca67f315c8aea0a78736…adb4c30a1352b702ca0a16eac75d23f8509ceaa27218578d7', key: '2b28ab097eaef7cf15d2154f16a6883c'})
