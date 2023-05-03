@@ -50,7 +50,6 @@ const InvMixColumns = [
     ['0x09', '0x0e', '0x0b', '0x0d'],
     ['0x0d', '0x09', '0x0e', '0x0b'],
     ['0x0b', '0x0d', '0x09', '0x0e']
-
 ]
 
 // tạo khóa ngẫu nhiên
@@ -131,31 +130,22 @@ function convertHexToByte(hexKey){
 }
 
 
-// console.log(convertHexToByte(createKeyRandom16()))
-
-
-// xor hai mảng byte mot chieu
-function xorByteArrays(A, B) {
-    if (A.length !== B.length) {
-      throw new Error('Arrays must have the same length')
+// hàm xor hai ma trận 4x4 mang giá trị thập phân
+function xorMatrixDecimal(A, B) {
+    const result = [];
+    for (let i = 0; i < A.length; i++) {
+      const row = [];
+        for (let j = 0; j < A[0].length; j++) {
+            const a = A[i][j];
+            const b = B[i][j];
+            const xor = a ^ b;
+            row.push(xor);
+        }
+        result.push(row);
     }
-    let result = A.map((byte, i) => byte ^ B[i]) 
-    return result
+    return result;
 }
-
-
-// xor các khối data với khóa gốc
-function xorData(arrayDataByte, keyByte){
-    let dataXor = []
-    for(let i = 0; i<arrayDataByte.length;i++){
-        let data = xorByteArrays(arrayDataByte[i], keyByte)
-        dataXor.push(data)
-    }
-    return dataXor
-}
-
-
-// console.log(xorData(convertStringToByte(blockData('Lorem ipsum dolor sit amet, consectetur adipiscing elit.',16)),convertKeyHexToByte(createKeyRandom16())))
+  
 
 
 
@@ -611,6 +601,35 @@ function hexArrayToDecArray(hexArray) {
     }
     return decArray;
 }
+
+// chuyển về ma trận unit8
+function arrayToUint8Array(array) {
+    // Tạo một Uint8Array có độ dài bằng với độ dài của mảng đầu vào
+    const uint8Array = new Uint8Array(array.length);
+  
+    // Duyệt qua từng phần tử của mảng đầu vào
+    for (let i = 0; i < array.length; i++) {
+      // Ép kiểu phần tử sang kiểu dữ liệu Uint8
+      const uint8 = new Uint8Array([array[i]]);
+  
+      // Gán giá trị Uint8 này cho phần tử tương ứng của Uint8Array kết quả
+      uint8Array.set(uint8, i);
+    }
+  
+    return uint8Array;
+  }
+
+// hàm chuyển về chuỗi
+function byteArrayToString(byteArray) {
+    let result = "";
+    for (let i = 0; i < byteArray.length; i++) {
+      result += String.fromCharCode(byteArray[i]);
+    }
+    return result;
+  }
+  
+  
+  
 // hàm mã hóa
 function encode(text){
 
@@ -628,15 +647,25 @@ function encode(text){
 
     // chuyển các phần tử trong step 1 thành byte
     let step2 = convertStringToByte(step1)
+    step2 = step2.map(function(element){
+        return convertMaTrix44(element)
+    })
     // console.log(step2)
 
     //chuyển key gốc thành mảng chứa các giá trị byte
     let step3 = convertHexToByte(listKey[0])
+    step3 = convertMaTrix44(step3)
     // console.log(step3)
 
 
     // xor data với khóa đầu tiền ở dạng byte
-    let step4 = xorData(step2,step3)
+    let step4 = step2.map(function(element){
+        return xorMatrixDecimal(element,step3)
+    })
+    // console.log(step4)
+    step4 = step4.map(function(element){
+        return matrixToArray(element)
+    })
     // console.log(step4)
 
 
@@ -716,7 +745,7 @@ function encode(text){
 
             listConvertToHexArrayData = newArrayData
 
-            // console.log(listConvertToHexArrayData)
+            // console.log(listConvertToHexArrayData, i)
 
         }
 
@@ -778,8 +807,11 @@ function encode(text){
         return element.join('')
     })
 
+    // console.log(arrayTextHex)
+
     let textHex = arrayTextHex.join('')
 
+    // console.log(textHex)
     return {
         text: textHex,
         key: keyDefault[0]
@@ -802,21 +834,32 @@ function decryption(textAndKye){
     // chia textHex thành các khối dữ liệu
     let step1 = blockData(textAndKye.text,32)
     // console.log(step1)
+    // console.log(textAndKye.text)
 
     // chuyển các phần tử hex trong step 1 thành byte
     let step2 = []
     step2 = step1.map(element => {
         return convertHexToByte(element)
     });
+    step2 = step2.map(function(element){
+        return convertMaTrix44(element)
+    })
     // console.log(step2)
 
     //chuyển key cuối thành mảng chứa các giá trị byte
-    let step3 = convertHexToByte(listKey[listKey.length-1])
+    let step3 = convertHexToByte(listKey[10])
+    step3 = convertMaTrix44(step3)
+    // console.log(listKey[10])
     // console.log(step3)
 
     // Thực hiện phép AddRoundKey với khóa con cuối cùng để tạo ra state ban đầu.
     let stateFirst = []
-    stateFirst = xorData(step2, step3)
+    stateFirst = step2.map(function(element){
+        return xorMatrixDecimal(element,step3)
+    })
+    stateFirst = stateFirst.map(function(element){
+        return matrixToArray(element)
+    })
     // console.log(stateFirst)
 
     // chuyển các state ban đầu thành matran 4x4
@@ -825,12 +868,14 @@ function decryption(textAndKye){
     })
     // console.log(convertStateMatrix4x4)
 
-    // thực hiện phép trộn đảo state gồm các  bước (SubBytes, ShiftRows, MixColumns)
+    // thực hiện phép trộn đảo state gồm các  bước (ShiftRows, SubBytes, addrowkey, MixColumns)
     function setUp9_1(a){
         let convertStateMatrix4x4 = a
+        // console.log(convertStateMatrix4x4)
         for(let i=9; i>0; i--){
             // ShiftRows từng khối dữ liệu 
             let shiftRowsData = convertStateMatrix4x4.map(function(element){
+                // console.log(element)
                 return shiftRows(element,2)
             })
             // console.log(shiftRowsData)
@@ -841,34 +886,49 @@ function decryption(textAndKye){
             })
             // console.log(subBytesData)
     
-            // chuyển mảng về ma trận 4x4 và thêm 0x để nhân hai ma trận chính xác
-            let mixColumnData = subBytesData.map(function(element){
-                let newArray = convertMaTrix44(element)
-                for(let i=0; i<4; i++){
-                    for(let j=0; j<4; j++){
-                        newArray[i][j] = '0x'+ newArray[i][j]
+            // chuyển tất cả dữ liệu về thập phân 
+            let subBytesDataDecimal = subBytesData.map(function(element){
+                return convertMaTrix44(hexArrayToDecArray(element))
+            })
+            // console.log(subBytesDataDecimal)
+
+            let key = convertHexToByte(listKey[i])
+            key = convertMaTrix44(key)
+            // console.log(listKey[i])
+            // console.log(key)
+
+            // xor với khóa ở vòng lặp hiện tại
+            let addroundkeyData = subBytesDataDecimal.map(function(element){
+                return xorArrays(element,key)
+            })
+            // console.log(addroundkeyData)
+
+
+            // mixColumn với dữ liệu mã hóa hiện tại
+            // chuyển tất cả dữ liệu về mã hex
+            let addroundkeyDataHex = addroundkeyData.map(function(element){
+                return decimalToHex(element)
+            })
+            // console.log(addroundkeyDataHex)
+            // thêm từng phần tử dạng hex thêm '0x'
+            addroundkeyDataHex.forEach(function(element){
+                for(let i = 0; i<element.length; i++){
+                    for(let j=0; j <element[0].length; j++){
+                        element[i][j] = '0x' + element[i][j]
                     }
                 }
-                return matrixMultiply(InvMixColumns,newArray)
             })
-            // console.log(mixColumnData)   
-            let key = convertHexToByte(listKey[i])
-            // console.log(key)
-    
-            // thực hiện xor data với khóa ở vòng lặp hiện tại và chuyển về matrix 44
-            let addroundkeyData = mixColumnData.map(function(element){
-                // chuyển từng phần tử trong ma trận về thập phân
-                return matrixToArray(convertHexToDecimal(element))
+            // console.log(addroundkeyDataHex)
+            let mixColumnData = addroundkeyDataHex.map(function(element){
+                return hexArrayToDecArray(matrixToArray(matrixMultiply(InvMixColumns,element)))
             })
-            // xor mảng 2 chiều với key
-            addroundkeyData = xorData(addroundkeyData,key)
-            // chuyển lại về matran 4x4
-            addroundkeyData = addroundkeyData.map(element => {
+            // console.log(mixColumnData)
+
+            mixColumnData = mixColumnData.map(function(element){
                 return convertMaTrix44(element)
-            });
-            // console.log(addroundkeyData)
-    
-            convertStateMatrix4x4 = addroundkeyData
+            })
+
+            convertStateMatrix4x4 = mixColumnData
         }
         return convertStateMatrix4x4
     }
@@ -878,7 +938,7 @@ function decryption(textAndKye){
 
     // shiftRowsData vòng lặp cuối
     let ShiftRowsDataFinish = finishSetUp.map(function(element){
-        return shiftRows(element,2)
+        return shiftRows(element, 2)
     })
     // console.log(ShiftRowsDataFinish)
     // subBytesData vòng lặp cuối
@@ -891,17 +951,22 @@ function decryption(textAndKye){
         // chuyển từng phần tử trong ma trận về thập phân
         return hexArrayToDecArray(element)
     })
+    // console.log(addroundkeyDataFinish)
     // xor mảng 2 chiều với key
     let key = convertHexToByte(listKey[0])
+    key = convertMaTrix44(key)
     // console.log(key)
-    addroundkeyDataFinish = xorData(addroundkeyDataFinish,key)
+    addroundkeyDataFinish = addroundkeyDataFinish.map(function(element){
+        return matrixToArray(xorMatrixDecimal(convertMaTrix44(element),key))
+    })
     // console.log(addroundkeyDataFinish)
     let convertArrayToUnit8Array = addroundkeyDataFinish.map(function(element){
-        console.log(element)
+        return byteArrayToString(arrayToUint8Array(element))
     })
+    console.log(convertArrayToUnit8Array)
 }
 
 
 console.log(encode('Lorem ipsum dolor sit amet, consectetur adipiscing elit.'))
 
-decryption({text: '5ad4148b3d50472bf9da738318e634ca67f315c8aea0a78736…adb4c30a1352b702ca0a16eac75d23f8509ceaa27218578d7', key: '2b28ab097eaef7cf15d2154f16a6883c'})
+decryption(encode('Lorem ipsum dolor sit amet, consectetur adipiscing elit.'))
