@@ -53,7 +53,7 @@ const InvMixColumns = [
 ]
 
 // tạo khóa ngẫu nhiên
-function createKeyRandom16(){
+export function createKeyRandom16(){
     // tạo mảng chỉ lưu trữ giá trị trong khoảng 16 bit
     let key = new Uint8Array(16);
     // tạo các giá trị ngẫu nhiên
@@ -617,23 +617,22 @@ function arrayToUint8Array(array) {
     }
   
     return uint8Array;
-  }
+}
 
 // hàm chuyển về chuỗi
 function byteArrayToString(byteArray) {
     let result = "";
     for (let i = 0; i < byteArray.length; i++) {
-      result += String.fromCharCode(byteArray[i]);
+        result += String.fromCharCode(byteArray[i]);
     }
     return result;
-  }
-  
-  
+}
   
 // hàm mã hóa
-function encode(text){
+export function encode(text, mainKey){
 
-    const keyDefault = ['2b28ab097eaef7cf15d2154f16a6883c']
+    const keyDefault = []
+    keyDefault.push(mainKey)
     let listKey = []
 
     // tạo 10 khóa lưu vào mảng
@@ -812,14 +811,10 @@ function encode(text){
     let textHex = arrayTextHex.join('')
 
     // console.log(textHex)
-    return {
-        text: textHex,
-        key: keyDefault[0]
-    }
-
+    return textHex
 }
 // hàm giải mã
-function decryption(textAndKye){
+export function decryption(textAndKye){
 
     // khởi tạo roundKey danh sách các khóa giải mã
     const keyDefault = [textAndKye.key]
@@ -963,10 +958,7 @@ function decryption(textAndKye){
     let convertArrayToUnit8Array = addroundkeyDataFinish.map(function(element){
         return byteArrayToString(arrayToUint8Array(element))
     })
-    console.log(convertArrayToUnit8Array)
+
+    let finish = convertArrayToUnit8Array.join('')
+    return finish
 }
-
-
-console.log(encode('Lorem ipsum dolor sit amet, consectetur adipiscing elit.'))
-
-decryption(encode('Lorem ipsum dolor sit amet, consectetur adipiscing elit.'))
